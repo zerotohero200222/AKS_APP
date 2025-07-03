@@ -5,48 +5,52 @@ on:
     branches:
       - main
 
+permissions:
+  id-token: write      # ✅ Required for OIDC authentication
+  contents: read       # ✅ Required to checkout repo content
+
 env:
   ARM_CLIENT_ID: ${{ secrets.ARM_CLIENT_ID }}
-  ARM_CLIENT_SECRET: ${{ secrets.ARM_CLIENT_SECRET }}
   ARM_SUBSCRIPTION_ID: ${{ secrets.ARM_SUBSCRIPTION_ID }}
   ARM_TENANT_ID: ${{ secrets.ARM_TENANT_ID }}
 
 jobs:
   terraform-deploy:
     runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
 
-      - name: Setup Terraform
+    steps:
+      - name: 📥 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 🔐 Login to Azure with OIDC (Single Auth Step)
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.ARM_CLIENT_ID }}
+          tenant-id: ${{ secrets.ARM_TENANT_ID }}
+          subscription-id: ${{ secrets.ARM_SUBSCRIPTION_ID }}
+
+      - name: 🛠 Setup Terraform
         uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.5.0
 
-      - name: Terraform Init
+      - name: 🌱 Terraform Init
         run: terraform init
 
-      - name: Terraform Plan
+      - name: 📊 Terraform Plan
         run: terraform plan -var-file="dev.tfvars" -out=tfplan
 
-      - name: Terraform Apply
+      - name: 🚀 Terraform Apply
         run: terraform apply -auto-approve tfplan
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-
-      - name: Get AKS Credentials
+      - name: ☁️ Get AKS Credentials
         run: |
           RESOURCE_GROUP=$(terraform output -raw resource_group_name)
           CLUSTER_NAME=$(terraform output -raw aks_cluster_name)
-          az aks get-credentials --resource-group $RESOURCE_GROUP --name $CLUSTER_NAME --overwrite-existing
+          az aks get-credentials --resource-group "$RESOURCE_GROUP" --name "$CLUSTER_NAME" --overwrite-existing
 
-      - name: Deploy to AKS
+      - name: 📦 Deploy to AKS
         run: |
           kubectl apply -f deployment.yaml
           kubectl apply -f service.yaml
+
