@@ -23,14 +23,14 @@ jobs:
         with:
           terraform_version: 1.5.0
 
-      - name: Terraform Init
-        run: terraform init
+      #- name: Terraform Init
+        #run: terraform init
 
-      - name: Terraform Plan
-        run: terraform plan -var-file="dev.tfvars" -out=tfplan
+      #- name: Terraform Plan
+        #run: terraform plan -var-file="dev.tfvars" -out=tfplan
 
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
+      #- name: Terraform Apply
+        #run: terraform apply -auto-approve tfplan
 
       - name: Azure Login
         uses: azure/login@v1
